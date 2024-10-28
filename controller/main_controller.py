@@ -147,6 +147,33 @@ class MainController:
                 QMessageBox.critical(self.window, "Erro", str(e))
             except ValueError as ve:
                 QMessageBox.critical(self.window, "Erro de Valor", str(ve))
+    
+    def apply_median_blur(self, layer_index=None):
+        if layer_index is None:
+            layer_index = len(self.processor.layers) - 1
+
+        dialog = KernelSizeDialog(
+            self.window,
+            title="Aplicar Blur Mediano",
+            initial=5,
+            min_val=1,
+            max_val=99
+        )
+        result = dialog.exec_()
+
+        if result == QDialog.Accepted:
+            kernel_size = dialog.get_kernel_size()
+            print(f"Aplicando Blur com kernel_size={kernel_size}")
+            try:
+                self.processor.apply_blur(layer_index=layer_index, kernel_size=kernel_size)
+                self.update_layers_list()
+                self.display_composited_image()
+                layer_name = self.processor.layers[layer_index].name
+                self.window.status_bar.showMessage(f"Filtro de Blur aplicado na camada '{layer_name}' com kernel size={kernel_size}.")
+            except IndexError as e:
+                QMessageBox.critical(self.window, "Erro", str(e))
+            except ValueError as ve:
+                QMessageBox.critical(self.window, "Erro de Valor", str(ve))
 
     def apply_gaussian_blur(self, layer_index=None):
         if layer_index is None:

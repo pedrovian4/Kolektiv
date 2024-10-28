@@ -90,6 +90,17 @@ class ImageProcessor:
         blurred = cv2.blur(image, (kernel_size, kernel_size))
 
         layer.image = self.cv_to_qimage(blurred)
+        
+    def apply_blur(self, layer_index, kernel_size=5):
+        if not self.layers:
+            return
+        if not (0 <= layer_index < len(self.layers)):
+            raise IndexError("Índice da camada fora do intervalo.")
+        self.save_history()
+        layer = self.layers[layer_index]
+        image = self.qimage_to_cv(layer.image)
+        blurred = cv2.medianBlur(image, kernel_size)
+        layer.image = self.cv_to_qimage(blurred)
 
     def apply_gaussian_blur(self, layer_index, kernel_size=5, sigma=0):
         if not self.layers:

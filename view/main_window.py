@@ -137,7 +137,8 @@ class MainWindow(QMainWindow):
 
             apply_blur_action = context_menu.addAction("Aplicar Blur")
             apply_gaussian_blur_action = context_menu.addAction("Aplicar Gaussian Blur")
-
+            apply_median_blur_action = context_menu.addAction("Aplicar blur mediano")
+            
             action = context_menu.exec_(self.layers_list.viewport().mapToGlobal(position))
             if action == remove_action:
                 current_row = self.layers_list.row(item)
@@ -157,6 +158,9 @@ class MainWindow(QMainWindow):
             elif action == apply_gaussian_blur_action:
                 current_row = self.layers_list.row(item)
                 self.controller.apply_gaussian_blur(layer_index=current_row)
+            elif action == apply_median_blur_action:
+                current_row = self.layers_list.row(item)
+                self.controller.apply_median_blur(layer_index=current_row)
 
     def apply_styles(self):
         self.setStyleSheet("""
