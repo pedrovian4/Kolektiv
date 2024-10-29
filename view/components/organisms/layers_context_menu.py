@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import QMenu, QWidget, QListWidgetItem, QDialog, QMessageBox
 from view.components.molecules.blur_settings_dialog import BlurSettingsDialog
+from view.components.molecules.sharpen_setting_dialog import SharpenSettingsDialog
 
 class LayersContextMenu(QMenu):
     def __init__(self, controller, parent: QWidget = None) -> None:
@@ -13,7 +14,8 @@ class LayersContextMenu(QMenu):
         self.apply_blur_action = self.addAction("Aplicar Blur")
         self.apply_gaussian_blur_action = self.addAction("Aplicar Gaussian Blur")
         self.apply_median_blur_action = self.addAction("Aplicar Blur Mediano")
-
+        self.apply_sharpen_action = self.addAction("Aplicar Nitidez")
+        
     def handle_action(self, action, item: QListWidgetItem) -> None:
         current_row = self.parent_widget.layers_list.row(item)
         layer_name = item.text()
@@ -48,7 +50,18 @@ class LayersContextMenu(QMenu):
                     return
                 kernel_size, _ = values
                 self.controller.apply_blur(layer_index=current_row, blur_type="median", kernel_size=kernel_size)
-    
+        elif action == self.apply_sharpen_action:
+            dialog = SharpenSettingsDialog(self, title="Nitidez")
+            if dialog.exec_():
+                values = dialog.get_values()
+                kernel_size, sigma, amount, threshold = values
+                self.controller.apply_sharpen(
+                    layer_index=current_row,
+                    kernel_size=kernel_size,
+                    sigma=sigma,
+                    amount=amount,
+                    threshold=threshold
+                )
     def show_confirm_dialog(self, layer_name: str) -> bool:
         msg_box = QMessageBox(self.parent_widget)
         msg_box.setWindowTitle("Remover Camada")

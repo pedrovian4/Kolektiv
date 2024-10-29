@@ -7,8 +7,10 @@ from PyQt5.QtCore import Qt
 
 from commands.add_layer_command import AddLayerCommand
 from commands.apply_blur_command import ApplyBlurCommand
+from commands.apply_sharpen_command import ApplySharpenCommand
 from commands.remover_layer_command import RemoveLayerCommand
 from managers.history_manager import HistoryManager
+from strategies.sharpen_strategies import UnsharpMask
 from view.components.atoms.status_bar import CustomStatusBar
 from view.components.organisms.layers_panel import LayersPanel
 from view.main_window import MainWindow
@@ -99,7 +101,23 @@ class LayerController(Controller):
             QMessageBox.warning(self.get_main_window(), "Erro", "Camada não encontrada")
         except ValueError as ve:
             QMessageBox.warning(self.get_main_window(), "Erro", str(ve))
-
+    
+    
+    def apply_sharpen(self, layer_index: int, kernel_size: int, sigma: float, amount: float, threshold: float) -> None:
+            try:
+                print(f"LayerController: Aplicando nitidez na camada {layer_index}")
+                strategy = UnsharpMask(kernel_size=kernel_size, sigma=sigma, amount=amount, threshold=threshold)
+                command = ApplySharpenCommand(self.layer_manager, layer_index, strategy)
+                self.history_manager.execute_command(command)
+                layer = self.layer_manager.get_layer(layer_index)
+                self.get_status_bar().showMessage(f"Nitidez aplicada na camada '{layer.name}'")
+                self.refresh_layers_panel()
+                self.main_controller.update_display() 
+            except IndexError:
+                QMessageBox.warning(self.get_main_window(), "Erro", "Camada não encontrada")
+            except Exception as e:
+                QMessageBox.warning(self.get_main_window(), "Erro", str(e))
+    
     def refresh_layers_panel(self) -> None:
         self.get_layers_pannel().clear_layers_list()
         for layer in self.layer_manager.get_layers():

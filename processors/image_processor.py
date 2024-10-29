@@ -137,6 +137,30 @@ class ImageProcessor(AbstractImageHandler):
         layer.image = blurred_qimage
         print(f"ImageProcessor: Blur aplicado na camada '{layer.name}'")
 
+    def apply_unsharp_to_layer(self, index: int, blur_type: str, kernel_size: int = 5, sigma: float = 1.0) -> None:
+        if not (0 <= index < len(self._layers)):
+            print(f"ImageProcessor: Índice de camada inválido ao aplicar blur: {index}")
+            raise IndexError("Índice de camada inválido")
+
+        layer = self._layers[index]
+        print(f"ImageProcessor: Aplicando {blur_type} na camada '{layer.name}'")
+
+        np_image = self.qimage_to_numpy(layer.image)
+
+        if blur_type == "blur":
+            blurred_np = cv2.blur(np_image, (kernel_size, kernel_size))
+        elif blur_type == "gaussian":
+            blurred_np = cv2.GaussianBlur(np_image, (kernel_size, kernel_size), sigma)
+        elif blur_type == "median":
+            blurred_np = cv2.medianBlur(np_image, kernel_size)
+        else:
+            raise ValueError(f"Tipo de blur desconhecido: {blur_type}")
+
+        blurred_qimage = self.numpy_to_qimage(blurred_np)
+
+        layer.image = blurred_qimage
+        print(f"ImageProcessor: Blur aplicado na camada '{layer.name}'")
+        
     def qimage_to_numpy(self, qimage: QImage) -> np.ndarray:
         qimage = qimage.convertToFormat(QImage.Format_RGBA8888)
         width = qimage.width()

@@ -3,6 +3,7 @@ from PyQt5.QtGui import QImage
 from abstracts.image_handler_abstract import AbstractImageHandler
 from entities.layer import Layer
 from typing import List
+from strategies.sharpen_strategies import SharpenStrategy
 
 class LayerManager:
     def __init__(self, image_handler: AbstractImageHandler) -> None:
@@ -47,3 +48,21 @@ class LayerManager:
         else:
             print(f"LayerManager: Índice de camada inválido ao aplicar blur: {index}")
             raise IndexError("Índice de camada inválido")
+    
+    def set_layer_image(self, index: int, image: QImage) -> None:
+        if 0 <= index < len(self.image_handler.layers):
+            self.image_handler.layers[index].image = image
+            print(f"LayerManager: Imagem da camada '{self.image_handler.layers[index].name}' atualizada.")
+        else:
+            print(f"LayerManager: Índice de camada inválido ao definir imagem: {index}")
+            raise IndexError("Índice de camada inválido")
+        
+    def apply_sharpen_to_layer(self, index: int, strategy: SharpenStrategy) -> None:
+        if not (0 <= index < len(self.image_handler.layers)):
+            print(f"LayerManager: Índice de camada inválido ao aplicar nitidez: {index}")
+            raise IndexError("Índice de camada inválido")
+
+        layer = self.image_handler.layers[index]
+        print(f"LayerManager: Aplicando nitidez usando {strategy.__class__.__name__} na camada '{layer.name}'")
+        sharpened_image = strategy.sharpen(layer.image)
+        self.set_layer_image(index, sharpened_image)
