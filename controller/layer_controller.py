@@ -9,6 +9,7 @@ import cv2
 from commands.add_layer_command import AddLayerCommand
 from commands.apply_blur_command import ApplyBlurCommand
 
+from commands.apply_transform_command import ApplyTransformCommand
 from strategies.edge_detection_stategies import (
     SobelEdgeDetection,
     PrewittEdgeDetection,
@@ -22,6 +23,7 @@ from commands.remover_layer_command import RemoveLayerCommand
 from managers.history_manager import HistoryManager
 from strategies.laplacian_filter_stategy import SimpleLaplacianFilter
 from strategies.sharpen_strategies import UnsharpMask
+from strategies.transform_strategies import RotateTransform, ScaleTransform, TranslateTransform
 from view.components.atoms.status_bar import CustomStatusBar
 from view.components.organisms.layers_panel import LayersPanel
 from view.main_window import MainWindow
@@ -188,6 +190,46 @@ class LayerController(Controller):
                 QMessageBox.warning(self.get_main_window(), "Erro", str(ve))
             except Exception as e:
                 QMessageBox.warning(self.get_main_window(), "Erro", str(e))
+
+
+    def apply_transform(self, layer_index: int, transform_type: str, **kwargs) -> None:
+        try:
+            print(f"LayerController: Aplicando Transformação '{transform_type}' na camada {layer_index}")
+            if transform_type == "scale":
+                strategy = ScaleTransform(
+                    scale_x=kwargs.get("scale_x", 1.0),
+                    scale_y=kwargs.get("scale_y", 1.0),
+                    interpolation=kwargs.get("interpolation", cv2.INTER_LINEAR)
+                )
+            elif transform_type == "rotate":
+                strategy = RotateTransform(
+                    angle=kwargs.get("angle", 0.0),
+                    scale=kwargs.get("scale", 1.0),
+                    center=kwargs.get("center", None),
+                    interpolation=kwargs.get("interpolation", cv2.INTER_LINEAR)
+                )
+            elif transform_type == "translate":
+                strategy = TranslateTransform(
+                    shift_x=kwargs.get("shift_x", 0),
+                    shift_y=kwargs.get("shift_y", 0),
+                    border_mode=kwargs.get("border_mode", cv2.BORDER_CONSTANT),
+                    border_value=kwargs.get("border_value", (0, 0, 0, 0))
+                )
+            else:
+                raise ValueError(f"Tipo de transformação desconhecido: {transform_type}")
+            command = ApplyTransformCommand(self.layer_manager, layer_index, strategy)
+            self.history_manager.execute_command(command)
+            layer = self.layer_manager.get_layer(layer_index)
+            self.get_status_bar().showMessage(f"Transformação '{transform_type.capitalize()}' aplicada na camada '{layer.name}'")
+            self.refresh_layers_panel()
+            self.main_controller.update_display()
+        except IndexError:
+            QMessageBox.warning(self.get_main_window(), "Erro", "Camada não encontrada")
+        except ValueError as ve:
+            QMessageBox.warning(self.get_main_window(), "Erro", str(ve))
+        except Exception as e:
+            QMessageBox.warning(self.get_main_window(), "Erro", str(e))
+
 
     def refresh_layers_panel(self) -> None:
         self.get_layers_pannel().clear_layers_list()

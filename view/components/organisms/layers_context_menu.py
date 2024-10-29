@@ -4,6 +4,7 @@ from view.components.molecules.edge_detection_dialog import EdgeDetectionSetting
 from view.components.molecules.highpass_settings_dialog import HighpassSettingsDialog
 from view.components.molecules.laplacian_dialog import LaplacianSettingsDialog
 from view.components.molecules.sharpen_setting_dialog import SharpenSettingsDialog
+from view.components.molecules.transform_dialog import TransformSettingsDialog
 
 class LayersContextMenu(QMenu):
     def __init__(self, controller, parent: QWidget = None) -> None:
@@ -24,7 +25,12 @@ class LayersContextMenu(QMenu):
         self.apply_sobel_action = self.edge_detection_menu.addAction("Sobel")
         self.apply_prewitt_action = self.edge_detection_menu.addAction("Prewitt")
         self.apply_canny_action = self.edge_detection_menu.addAction("Canny")
-    
+
+        self.transform_menu = self.addMenu("Transformações")
+        self.apply_scale_action = self.transform_menu.addAction("Escala")
+        self.apply_rotate_action = self.transform_menu.addAction("Rotação")
+        self.apply_translate_action = self.transform_menu.addAction("Translação")
+
     def handle_action(self, action, item: QListWidgetItem) -> None:
         current_row = self.parent_widget.layers_list.row(item)
         layer_name = item.text()
@@ -119,6 +125,34 @@ class LayersContextMenu(QMenu):
                 self.controller.apply_edge_detection(
                     layer_index=current_row,
                     method="canny",
+                    **params
+                )
+                
+        elif action == self.apply_scale_action:
+            dialog = TransformSettingsDialog(self, title="Escala", transform_type="scale")
+            if dialog.exec_():
+                params = dialog.get_values()
+                self.controller.apply_transform(
+                    layer_index=current_row,
+                    transform_type="scale",
+                    **params
+                )
+        elif action == self.apply_rotate_action:
+            dialog = TransformSettingsDialog(self, title="Rotação", transform_type="rotate")
+            if dialog.exec_():
+                params = dialog.get_values()
+                self.controller.apply_transform(
+                    layer_index=current_row,
+                    transform_type="rotate",
+                    **params
+                )
+        elif action == self.apply_translate_action:
+            dialog = TransformSettingsDialog(self, title="Translação", transform_type="translate")
+            if dialog.exec_():
+                params = dialog.get_values()
+                self.controller.apply_transform(
+                    layer_index=current_row,
+                    transform_type="translate",
                     **params
                 )
                 
