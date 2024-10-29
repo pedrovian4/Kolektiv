@@ -87,3 +87,13 @@ class LayerManager:
         print(f"LayerManager: Aplicando Filtro Laplaciano usando {strategy.__class__.__name__} na camada '{layer.name}'")
         laplacian_image = strategy.laplacian_filter(layer.image)
         self.set_layer_image(index, laplacian_image)
+        
+    def apply_edge_detection_filter_to_layer(self, index: int, strategy) -> None:
+        if not (0 <= index < len(self.image_handler.layers)):
+            print(f"LayerManager: Índice de camada inválido ao aplicar Filtro de Detecção de Bordas: {index}")
+            raise IndexError("Índice de camada inválido")
+
+        layer = self.image_handler.layers[index]
+        print(f"LayerManager: Aplicando Filtro de Detecção de Bordas usando {strategy.__class__.__name__} na camada '{layer.name}'")
+        edge_image = strategy.detect_edges(layer.image)
+        self.set_layer_image(index, edge_image)

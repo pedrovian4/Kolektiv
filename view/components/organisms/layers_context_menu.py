@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import QMenu, QWidget, QListWidgetItem, QDialog, QMessageBox
 from view.components.molecules.blur_settings_dialog import BlurSettingsDialog
+from view.components.molecules.edge_detection_dialog import EdgeDetectionSettingsDialog
 from view.components.molecules.highpass_settings_dialog import HighpassSettingsDialog
 from view.components.molecules.laplacian_dialog import LaplacianSettingsDialog
 from view.components.molecules.sharpen_setting_dialog import SharpenSettingsDialog
@@ -19,7 +20,11 @@ class LayersContextMenu(QMenu):
         self.apply_sharpen_action = self.addAction("Aplicar Nitidez")
         self.apply_highpass_filter_action = self.addAction("Aplicar filtro de alta passagem")
         self.apply_laplacian_filter_action = self.addAction("Aplicar filtro laplaciano")
-        
+        self.edge_detection_menu = self.addMenu("Detecção de Bordas")
+        self.apply_sobel_action = self.edge_detection_menu.addAction("Sobel")
+        self.apply_prewitt_action = self.edge_detection_menu.addAction("Prewitt")
+        self.apply_canny_action = self.edge_detection_menu.addAction("Canny")
+    
     def handle_action(self, action, item: QListWidgetItem) -> None:
         current_row = self.parent_widget.layers_list.row(item)
         layer_name = item.text()
@@ -88,6 +93,33 @@ class LayersContextMenu(QMenu):
                     scale=scale,
                     delta = delta,
                     border_type = border_type
+                )
+        elif action == self.apply_sobel_action:
+            dialog = EdgeDetectionSettingsDialog(self, title="Sobel Edge Detection", method="sobel")
+            if dialog.exec_():
+                params = dialog.get_values()
+                self.controller.apply_edge_detection(
+                    layer_index=current_row,
+                    method="sobel",
+                    **params
+                )
+        elif action == self.apply_prewitt_action:
+            dialog = EdgeDetectionSettingsDialog(self, title="Prewitt Edge Detection", method="prewitt")
+            if dialog.exec_():
+                params = dialog.get_values()
+                self.controller.apply_edge_detection(
+                    layer_index=current_row,
+                    method="prewitt",
+                    **params
+                )
+        elif action == self.apply_canny_action:
+            dialog = EdgeDetectionSettingsDialog(self, title="Canny Edge Detection", method="canny")
+            if dialog.exec_():
+                params = dialog.get_values()
+                self.controller.apply_edge_detection(
+                    layer_index=current_row,
+                    method="canny",
+                    **params
                 )
                 
     def show_confirm_dialog(self, layer_name: str) -> bool:

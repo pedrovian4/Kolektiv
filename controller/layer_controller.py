@@ -8,6 +8,14 @@ import cv2
 
 from commands.add_layer_command import AddLayerCommand
 from commands.apply_blur_command import ApplyBlurCommand
+
+from strategies.edge_detection_stategies import (
+    SobelEdgeDetection,
+    PrewittEdgeDetection,
+    CannyEdgeDetection
+)
+from commands.apply_edge_detection_filter_command import ApplyEdgeDetectionCommand
+
 from commands.apply_laplacian_filter_command import ApplyLaplacianFilterCommand
 from commands.apply_sharpen_command import ApplySharpenCommand
 from commands.remover_layer_command import RemoveLayerCommand
@@ -135,6 +143,51 @@ class LayerController(Controller):
             QMessageBox.warning(self.get_main_window(), "Erro", "Camada não encontrada")
         except Exception as e:
             QMessageBox.warning(self.get_main_window(), "Erro", str(e))
+
+
+    def apply_edge_detection(self, layer_index: int, method: str, **kwargs) -> None:
+            try:
+                print(f"LayerController: Aplicando Detecção de Bordas '{method}' na camada {layer_index}")
+                if method == "sobel":
+                    border_type = kwargs.get("border_type", "BORDER_DEFAULT")
+                    border_type =  getattr(cv2, border_type, cv2.BORDER_DEFAULT)
+                    strategy = SobelEdgeDetection(
+                        scale=kwargs.get("dx", 1),
+                        delta=kwargs.get("dy", 1),
+                        ksize=kwargs.get("ksize", 3),
+                        border_type=border_type
+                    )
+                elif method == "prewitt":
+                    border_type = kwargs.get("border_type", "BORDER_DEFAULT")
+                    border_type =  getattr(cv2, border_type, cv2.BORDER_DEFAULT)
+                    strategy = PrewittEdgeDetection(
+                        scale=kwargs.get("dx", 1),
+                        delta=kwargs.get("dy", 1),
+                        ksize=kwargs.get("ksize", 3),
+                        border_type= border_type
+                    )
+                elif method == "canny":
+                    strategy = CannyEdgeDetection(
+                        threshold1=kwargs.get("threshold1", 100.0),
+                        threshold2=kwargs.get("threshold2", 200.0),
+                        apertureSize=kwargs.get("apertureSize", 3),
+                        L2gradient=kwargs.get("L2gradient", False)
+                    )
+                else:
+                    raise ValueError(f"Método de detecção de bordas desconhecido: {method}")
+
+                command = ApplyEdgeDetectionCommand(self.layer_manager, layer_index, strategy)
+                self.history_manager.execute_command(command)
+                layer = self.layer_manager.get_layer(layer_index)
+                self.get_status_bar().showMessage(f"Detecção de Bordas '{method.capitalize()}' aplicada na camada '{layer.name}'")
+                self.refresh_layers_panel()
+                self.main_controller.update_display()
+            except IndexError:
+                QMessageBox.warning(self.get_main_window(), "Erro", "Camada não encontrada")
+            except ValueError as ve:
+                QMessageBox.warning(self.get_main_window(), "Erro", str(ve))
+            except Exception as e:
+                QMessageBox.warning(self.get_main_window(), "Erro", str(e))
 
     def refresh_layers_panel(self) -> None:
         self.get_layers_pannel().clear_layers_list()

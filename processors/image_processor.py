@@ -1,5 +1,3 @@
-# managers/image_processor.py
-
 from abstracts.image_handler_abstract import AbstractImageHandler
 from entities.layer import Layer
 from PyQt5.QtGui import QImage, QPainter

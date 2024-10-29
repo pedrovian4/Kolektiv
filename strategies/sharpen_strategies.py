@@ -10,13 +10,7 @@ class SharpenStrategy(ABC):
 
 class UnsharpMask(SharpenStrategy):
     def __init__(self, kernel_size: int = 5, sigma: float = 1.0, amount: float = 1.0, threshold: float = 0.0):
-        """
-        :param kernel_size: Tamanho do kernel para o blur Gaussiano.
-        :param sigma: Desvio padrão para o blur Gaussiano.
-        :param amount: Quanto a imagem deve ser realçada.
-        :param threshold: Mínimo diferença para aplicar o realce.
-        """
-        self.kernel_size = kernel_size if kernel_size % 2 != 0 else kernel_size + 1  # Garantir tamanho ímpar
+        self.kernel_size = kernel_size if kernel_size % 2 != 0 else kernel_size + 1
         self.sigma = sigma
         self.amount = amount
         self.threshold = threshold
