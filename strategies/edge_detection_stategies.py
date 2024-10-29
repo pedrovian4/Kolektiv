@@ -6,7 +6,6 @@ import numpy as np
 class EdgeDetectionStrategy(ABC):
     @abstractmethod
     def detect_edges(self, image: QImage) -> QImage:
-        """Aplica o método de detecção de bordas à imagem."""
         pass
 
 class SobelEdgeDetection(EdgeDetectionStrategy):

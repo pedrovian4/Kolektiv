@@ -9,6 +9,7 @@ import cv2
 from commands.add_layer_command import AddLayerCommand
 from commands.apply_blur_command import ApplyBlurCommand
 
+from commands.apply_high_pass_filter_command import ApplyHighpassFilterCommand
 from commands.apply_transform_command import ApplyTransformCommand
 from strategies.edge_detection_stategies import (
     SobelEdgeDetection,
@@ -21,6 +22,7 @@ from commands.apply_laplacian_filter_command import ApplyLaplacianFilterCommand
 from commands.apply_sharpen_command import ApplySharpenCommand
 from commands.remover_layer_command import RemoveLayerCommand
 from managers.history_manager import HistoryManager
+from strategies.high_pass_filter_stategies import SimpleHighpassFilter
 from strategies.laplacian_filter_stategy import SimpleLaplacianFilter
 from strategies.sharpen_strategies import UnsharpMask
 from strategies.transform_strategies import RotateTransform, ScaleTransform, TranslateTransform
@@ -190,7 +192,24 @@ class LayerController(Controller):
                 QMessageBox.warning(self.get_main_window(), "Erro", str(ve))
             except Exception as e:
                 QMessageBox.warning(self.get_main_window(), "Erro", str(e))
+    def apply_highpass_filter(self, layer_index: int, kernel_size:int, sigma:float, threshold) -> None:
+        try:
+            strategy = SimpleHighpassFilter(kernel_size=kernel_size, sigma=sigma, threshold=threshold)
+            command = ApplyHighpassFilterCommand(self.layer_manager, layer_index, strategy)
+            self.history_manager.execute_command(command)
+            layer = self.layer_manager.get_layer(layer_index)
 
+            #QMessageBox.warning(self.get_main_window(), "Erro", "Depois eu implemento")
+            self.get_status_bar().showMessage(f"Filtro de alta passagem aplicada na camada '{layer.name}'")
+
+            self.refresh_layers_panel()
+            self.main_controller.update_display()
+        except IndexError:
+            QMessageBox.warning(self.get_main_window(), "Erro", "Camada não encontrada")
+        except ValueError as ve:
+            QMessageBox.warning(self.get_main_window(), "Erro", str(ve))
+        except Exception as e:
+            QMessageBox.warning(self.get_main_window(), "Erro", str(e))
 
     def apply_transform(self, layer_index: int, transform_type: str, **kwargs) -> None:
         try:
