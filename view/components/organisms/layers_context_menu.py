@@ -1,5 +1,7 @@
 from PyQt5.QtWidgets import QMenu, QWidget, QListWidgetItem, QDialog, QMessageBox
 from view.components.molecules.blur_settings_dialog import BlurSettingsDialog
+from view.components.molecules.highpass_settings_dialog import HighpassSettingsDialog
+from view.components.molecules.laplacian_dialog import LaplacianSettingsDialog
 from view.components.molecules.sharpen_setting_dialog import SharpenSettingsDialog
 
 class LayersContextMenu(QMenu):
@@ -15,6 +17,8 @@ class LayersContextMenu(QMenu):
         self.apply_gaussian_blur_action = self.addAction("Aplicar Gaussian Blur")
         self.apply_median_blur_action = self.addAction("Aplicar Blur Mediano")
         self.apply_sharpen_action = self.addAction("Aplicar Nitidez")
+        self.apply_highpass_filter_action = self.addAction("Aplicar filtro de alta passagem")
+        self.apply_laplacian_filter_action = self.addAction("Aplicar filtro laplaciano")
         
     def handle_action(self, action, item: QListWidgetItem) -> None:
         current_row = self.parent_widget.layers_list.row(item)
@@ -62,6 +66,30 @@ class LayersContextMenu(QMenu):
                     amount=amount,
                     threshold=threshold
                 )
+                
+        elif action == self.apply_highpass_filter_action:
+            dialog = HighpassSettingsDialog(self, title="Highpass Filter")
+            if dialog.exec_():
+                values = dialog.get_values()
+                kernel_size, sigma, threshold = values
+                self.controller.apply_highpass_filter(
+                    layer_index=current_row,
+                    kernel_size=kernel_size,
+                    sigma=sigma,
+                    threshold=threshold
+                )
+        elif action == self.apply_laplacian_filter_action:
+            dialog = LaplacianSettingsDialog(self, title="Filtro Laplaciano")
+            if dialog.exec_():
+                kernel_size, scale, delta, border_type = dialog.get_values()
+                self.controller.apply_laplacian_filter(
+                    layer_index=current_row,
+                    kernel_size=kernel_size,
+                    scale=scale,
+                    delta = delta,
+                    border_type = border_type
+                )
+                
     def show_confirm_dialog(self, layer_name: str) -> bool:
         msg_box = QMessageBox(self.parent_widget)
         msg_box.setWindowTitle("Remover Camada")
