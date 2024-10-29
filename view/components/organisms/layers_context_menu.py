@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QMenu, QWidget, QListWidgetItem, QDialog
+from PyQt5.QtWidgets import QMenu, QWidget, QListWidgetItem, QDialog, QMessageBox
 from view.components.molecules.blur_settings_dialog import BlurSettingsDialog
 
 class LayersContextMenu(QMenu):
@@ -18,14 +18,13 @@ class LayersContextMenu(QMenu):
         current_row = self.parent_widget.layers_list.row(item)
         layer_name = item.text()
         
-
         if action == self.remove_action:
-            confirmed = self.controller.confirm_layer_removal(layer_name)
+            confirmed = self.show_confirm_dialog(layer_name)
             if confirmed:
                 self.parent_widget.layers_list.takeItem(current_row)
                 self.controller.delete_layer(current_row)
         elif action == self.apply_blur_action:
-            dialog = BlurSettingsDialog(self, title="Blur", gaussian=False)
+            dialog = BlurSettingsDialog(self, title="Blur")
             if dialog.exec_():
                 values = dialog.get_values()
                 if values == (None, None):
@@ -42,10 +41,28 @@ class LayersContextMenu(QMenu):
                 kernel_size, sigma = values
                 self.controller.apply_blur(layer_index=current_row, blur_type="gaussian", kernel_size=kernel_size, sigma=sigma)
         elif action == self.apply_median_blur_action:
-            dialog = BlurSettingsDialog(self, title="Blur Mediano", gaussian=False)
+            dialog = BlurSettingsDialog(self, title="Blur Mediano")
             if dialog.exec_():
                 values = dialog.get_values()
                 if values == (None, None):
                     return
-                kernel_size, sigma = values
+                kernel_size, _ = values
                 self.controller.apply_blur(layer_index=current_row, blur_type="median", kernel_size=kernel_size)
+    
+    def show_confirm_dialog(self, layer_name: str) -> bool:
+        msg_box = QMessageBox(self.parent_widget)
+        msg_box.setWindowTitle("Remover Camada")
+        msg_box.setText(f"Tem certeza que deseja remover a camada '{layer_name}'?")
+        msg_box.setIcon(QMessageBox.Question)
+
+        sim_button = msg_box.addButton("Sim", QMessageBox.AcceptRole)
+        nao_button = msg_box.addButton("Não", QMessageBox.RejectRole)
+
+        msg_box.setDefaultButton(nao_button)
+
+        msg_box.exec_()
+
+        if msg_box.clickedButton() == sim_button:
+            return True
+        else:
+            return False

@@ -17,3 +17,8 @@ class ImageLabel(QLabel):
 
     def clear_image(self) -> None:
         self.clear()
+
+    def set_image(self, qimage):
+        pixmap = QPixmap.fromImage(qimage)
+        self.setPixmap(pixmap)
+

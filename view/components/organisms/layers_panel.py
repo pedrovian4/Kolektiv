@@ -64,3 +64,7 @@ class LayersPanel(QWidget):
             action = context_menu.exec_(self.layers_list.viewport().mapToGlobal(position))
             if action:
                 context_menu.handle_action(action, item)
+    def refresh_layers(self) -> None:
+        self.clear_layers_list()
+        for layer in self.controller.layer_manager.get_layers():
+            self.add_layer_to_list(layer.name, layer.visible)

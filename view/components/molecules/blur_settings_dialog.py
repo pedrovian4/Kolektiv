@@ -22,7 +22,7 @@ class BlurSettingsDialog(QDialog):
         self.intensity_slider.valueChanged.connect(self.update_kernel_size)
         layout.addWidget(self.intensity_slider)
 
-        if(self.gaussian):
+        if self.gaussian:
             sharpness_label = QLabel("Nitidez (Sigma):", self)
             layout.addWidget(sharpness_label)
             self.sharpness_slider = QSlider(Qt.Horizontal, self)

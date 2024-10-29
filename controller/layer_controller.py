@@ -5,19 +5,23 @@ from PyQt5.QtGui import QImage
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtCore import Qt
 
+from commands.add_layer_command import AddLayerCommand
+from commands.apply_blur_command import ApplyBlurCommand
+from commands.remover_layer_command import RemoveLayerCommand
+from managers.history_manager import HistoryManager
 from view.components.atoms.status_bar import CustomStatusBar
 from view.components.organisms.layers_panel import LayersPanel
 from view.main_window import MainWindow
 from .controller_interface import Controller
-from typing import Callable
 from managers.layer_manager import LayerManager 
 from controller.blur_controller import BlurController
 
 class LayerController(Controller):
-    def __init__(self, layer_manager: LayerManager, controller, blur_controller: BlurController) -> None:
+    def __init__(self, layer_manager: LayerManager, controller, blur_controller: BlurController, history_manager: HistoryManager) -> None:
         self.layer_manager = layer_manager
         self.main_controller = controller
         self.blur_controller = blur_controller
+        self.history_manager = history_manager
 
     def show(self) -> None:
         self.refresh_layers_panel()
@@ -25,7 +29,9 @@ class LayerController(Controller):
     def add_image_layer(self, file_path: str, qt_image: QImage) -> None:
         layer_name = os.path.basename(file_path)
         print(f"LayerController: Adicionando camada '{layer_name}'")
+        command = AddLayerCommand(self.layer_manager, layer_name, qt_image)
         self.layer_manager.add_image_layer(file_path, qt_image)
+        self.history_manager.execute_command(command)
         self.get_status_bar().showMessage(f"Camada adicionada: {layer_name}")
         self.get_layers_pannel().add_layer_to_list(layer_name, True)  
         self.refresh_layers_panel()
@@ -34,6 +40,8 @@ class LayerController(Controller):
     def delete_layer(self, index: int) -> None:
         try:
             removed_layer_name = self.layer_manager.delete_layer(index)
+            command = RemoveLayerCommand(self.layer_manager, index)
+            self.history_manager.execute_command(command)
             self.get_status_bar().showMessage(f"Camada removida: {removed_layer_name}")
             self.refresh_layers_panel()
             self.main_controller.update_display()
@@ -70,28 +78,19 @@ class LayerController(Controller):
 
             layer = self.layer_manager.get_layer(index)
             layer.opacity = opacity
-            self.refresh_layers_panel()
             self.get_status_bar().showMessage(f"Opacidade da camada '{layer.name}' alterada para {opacity * 100:.0f}%")
+            self.refresh_layers_panel()
             self.main_controller.update_display()
         except IndexError:
             QMessageBox.warning(self.get_main_window(), "Erro", "Camada não encontrada")
         except ValueError as ve:
             QMessageBox.warning(self.get_main_window(), "Erro", str(ve))
     
-    def confirm_layer_removal(self, layer_name: str) -> bool:
-        reply = QMessageBox.question(
-            self.get_main_window(),
-            "Remover Camada",
-            f"Tem certeza que deseja remover a camada '{layer_name}'?",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
-        )
-        return reply == QMessageBox.Yes
-
     def apply_blur(self, layer_index: int, blur_type: str, **kwargs) -> None:
         try:
             print(f"LayerController: Aplicando {blur_type} na camada {layer_index}")
-            self.blur_controller.apply_blur_to_layer(layer_index, blur_type, **kwargs)
+            command = ApplyBlurCommand(self.layer_manager, layer_index,blur_type, **kwargs)
+            self.history_manager.execute_command(command)
             layer = self.layer_manager.get_layer(layer_index)
             self.get_status_bar().showMessage(f"{blur_type.capitalize()} aplicado na camada '{layer.name}'")
             self.refresh_layers_panel()

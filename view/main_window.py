@@ -44,3 +44,11 @@ class MainWindow(QMainWindow):
                 background-color: #3E3E3E;
             }
         """)
+    
+    def update_layers_list(self) -> None:
+        """Atualiza a lista de camadas na interface."""
+        self.main_layout.layers_panel.refresh_layers()
+
+    def display_composited_image(self) -> None:
+        """Atualiza a imagem composta exibida na interface."""
+        self.controller.update_display()
