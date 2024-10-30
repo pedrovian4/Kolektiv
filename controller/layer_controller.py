@@ -50,8 +50,7 @@ class LayerController(Controller):
         self.layer_manager.add_image_layer(file_path, qt_image)
         self.history_manager.execute_command(command)
         self.get_status_bar().showMessage(f"Camada adicionada: {layer_name}")
-        self.get_layers_pannel().add_layer_to_list(layer_name, True)  
-        self.refresh_layers_panel()
+        self.get_layers_pannel().model.addLayer(layer_name, True)
         self.main_controller.update_display()
    
     def delete_layer(self, index: int) -> None:
@@ -60,30 +59,26 @@ class LayerController(Controller):
             command = RemoveLayerCommand(self.layer_manager, index)
             self.history_manager.execute_command(command)
             self.get_status_bar().showMessage(f"Camada removida: {removed_layer_name}")
-            self.refresh_layers_panel()
+            self.get_layers_pannel().model.removeLayer(index)
             self.main_controller.update_display()
         except IndexError:
             QMessageBox.warning(self.get_main_window(), "Erro", "Camada não encontrada")
 
     def toggle_layer_visibility(self, index: int) -> None:
+        """Alterna a visibilidade da camada e atualiza a interface."""
         try:
             self.layer_manager.toggle_layer_visibility(index)
-            layer = self.layer_manager.get_layer(index)
-            item = self.get_layers_pannel().layers_list.item(index)
-            if layer.visible:
-                item.setCheckState(Qt.Checked)
-            else:
-                item.setCheckState(Qt.Unchecked)
-            self.get_status_bar().showMessage(f"Visibilidade da camada '{layer.name}' alterada para {'Visível' if layer.visible else 'Oculto'}")
-            self.refresh_layers_panel()
             self.main_controller.update_display()
+            layer = self.layer_manager.get_layer(index)
+            visibility = 'visível' if layer.visible else 'oculto'
+            self.get_status_bar().showMessage(f"Visibilidade da camada '{layer.name}' alterada para {visibility}")
         except IndexError:
             QMessageBox.warning(self.get_main_window(), "Erro", "Camada não encontrada")
-                
+
+
     def reorder_layers(self, source: int, dest: int) -> None:
         try:
             self.layer_manager.reorder_layers(source, dest)
-            self.refresh_layers_panel()
             self.main_controller.update_display()
         except IndexError:
             QMessageBox.warning(self.get_main_window(), "Erro", "Reordenação de camadas inválida")
@@ -192,16 +187,14 @@ class LayerController(Controller):
                 QMessageBox.warning(self.get_main_window(), "Erro", str(ve))
             except Exception as e:
                 QMessageBox.warning(self.get_main_window(), "Erro", str(e))
+    
     def apply_highpass_filter(self, layer_index: int, kernel_size:int, sigma:float, threshold) -> None:
         try:
             strategy = SimpleHighpassFilter(kernel_size=kernel_size, sigma=sigma, threshold=threshold)
             command = ApplyHighpassFilterCommand(self.layer_manager, layer_index, strategy)
             self.history_manager.execute_command(command)
             layer = self.layer_manager.get_layer(layer_index)
-
-            #QMessageBox.warning(self.get_main_window(), "Erro", "Depois eu implemento")
             self.get_status_bar().showMessage(f"Filtro de alta passagem aplicada na camada '{layer.name}'")
-
             self.refresh_layers_panel()
             self.main_controller.update_display()
         except IndexError:
@@ -249,12 +242,14 @@ class LayerController(Controller):
         except Exception as e:
             QMessageBox.warning(self.get_main_window(), "Erro", str(e))
 
-
     def refresh_layers_panel(self) -> None:
-        self.get_layers_pannel().clear_layers_list()
-        for layer in self.layer_manager.get_layers():
-            self.get_layers_pannel().add_layer_to_list(layer.name, layer.visible)
-
+        self.get_layers_pannel().model.beginResetModel()
+        self.get_layers_pannel().model.layers = [
+            {'name': layer.name, 'visible': layer.visible}
+            for layer in self.layer_manager.get_layers()
+        ]
+        self.get_layers_pannel().model.endResetModel()
+        
     def get_main_window(self) -> MainWindow:
         return self.main_controller.window
     
