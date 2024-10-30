@@ -1,70 +1,111 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QListWidget, QListWidgetItem
-from PyQt5.QtCore import Qt
-from typing import Optional
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QListView, QPushButton, QHBoxLayout, QStyledItemDelegate, QStyle, QStyleOptionButton
+from PyQt5.QtCore import Qt, QAbstractListModel, QModelIndex
+from PyQt5.QtGui import QIcon, QPainter
+from typing import Optional, List
 from view.components.atoms.label import Label
-from view.components.molecules.layer_list_item import LayerListItem
-from view.components.organisms.layers_context_menu import LayersContextMenu
+
+class LayerModel(QAbstractListModel):
+    def __init__(self, layers: List[dict],controller,parent=None):
+        super().__init__(parent)
+        self.layers = layers
+        self.controller = controller
+
+    def rowCount(self, parent=QModelIndex()) -> int:
+        return len(self.layers)
+
+    def data(self, index, role=Qt.DisplayRole):
+        if not index.isValid() or index.row() >= len(self.layers):
+            return None
+        layer = self.layers[index.row()]
+        if role == Qt.DisplayRole:
+            return layer['name']
+        if role == Qt.CheckStateRole:
+            return Qt.Checked if layer['visible'] else Qt.Unchecked
+
+    def setData(self, index, value, role=Qt.EditRole) -> bool:
+        if not index.isValid():
+            return False
+        if role == Qt.CheckStateRole:
+            visible = value == Qt.Checked
+            self.layers[index.row()]['visible'] = visible
+            self.dataChanged.emit(index, index, [Qt.CheckStateRole])
+            self.controller.toggle_layer_visibility(index.row())
+            return True
+        return False
+
+    def flags(self, index):
+        return Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsUserCheckable
+
+    def addLayer(self, name: str, visible: bool = True) -> None:
+        self.beginInsertRows(QModelIndex(), len(self.layers), len(self.layers))
+        self.layers.append({'name': name, 'visible': visible})
+        self.endInsertRows()
+
+    def removeLayer(self, row: int) -> None:
+        if 0 <= row < len(self.layers):
+            self.beginRemoveRows(QModelIndex(), row, row)
+            del self.layers[row]
+            self.endRemoveRows()
+
+
+class LayerDelegate(QStyledItemDelegate):
+    def paint(self, painter: QPainter, option: QStyleOptionButton, index: QModelIndex) -> None:
+        super().paint(painter, option, index)
+        layer_visible = index.data(Qt.CheckStateRole) == Qt.Checked
+        icon = QIcon("icons/eye-open.png" if layer_visible else "icons/eye-closed.png")
+        icon_rect = option.rect.adjusted(option.rect.width() - 30, 5, -5, -5)
+        icon.paint(painter, icon_rect)
+
+    def editorEvent(self, event, model, option, index):
+        if event.type() == event.MouseButtonRelease:
+            new_visibility = not (index.data(Qt.CheckStateRole) == Qt.Checked)
+            model.setData(index, Qt.Checked if new_visibility else Qt.Unchecked, Qt.CheckStateRole)
+            model.controller.toggle_layer_visibility(index.row())
+        return super().editorEvent(event, model, option, index)
+
+
 
 class LayersPanel(QWidget):
     def __init__(self, controller, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.controller = controller
+        self.layers = []
+        self.model = LayerModel(self.layers, controller)
         self.setup_ui()
 
     def setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(5)
 
-        label = Label("Camadas", self)
+        label = Label("Pilha", self)
         label.setStyleSheet("font-size: 16px; font-weight: bold; color: #FFFFFF;")
         layout.addWidget(label)
 
-        self.setup_layers_list()
+        self.layers_list = QListView(self)
+        self.layers_list.setModel(self.model)
+        self.layers_list.setItemDelegate(LayerDelegate())
+        self.layers_list.setSelectionMode(QListView.SingleSelection)
         layout.addWidget(self.layers_list)
-        layout.addStretch()
+
+        buttons_layout = QHBoxLayout()
+        
+        """         
+            add_button = QPushButton()
+            add_button.setIcon(QIcon("icons/circle-plus.png"))
+            add_button.setToolTip("Adicionar camada")
+            add_button.clicked.connect(lambda: self.model.addLayer("Nova Camada"))
+         """
+        delete_button = QPushButton()
+        delete_button.setIcon(QIcon("icons/x.png"))
+        delete_button.setToolTip("Deletar camada")
+        delete_button.clicked.connect(self.delete_selected_layer)
+
+        buttons_layout.addWidget(delete_button)
+        layout.addLayout(buttons_layout)
 
         self.setLayout(layout)
 
-    def setup_layers_list(self) -> None:
-        self.layers_list = QListWidget(self)
-        self.layers_list.setSelectionMode(QListWidget.SingleSelection)
-        self.layers_list.setDragEnabled(True)
-        self.layers_list.setAcceptDrops(True)
-        self.layers_list.setDragDropMode(QListWidget.InternalMove)
-
-        self.layers_list.model().rowsMoved.connect(self.on_layers_reordered)
-        self.layers_list.itemChanged.connect(self.on_layer_visibility_changed)
-        self.layers_list.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.layers_list.customContextMenuRequested.connect(self.open_context_menu)
-
-    def add_layer_to_list(self, name: str, visible: bool = True) -> None:
-        print(f"LayersPanel: Adicionando camada '{name}' com visibilidade {visible}.")
-        item = LayerListItem(name, visible)
-        self.layers_list.addItem(item)
-
-    def clear_layers_list(self) -> None:
-        print("LayersPanel: Limpando todas as camadas da interface.")
-        self.layers_list.clear()
-
-    def on_layer_visibility_changed(self, item: QListWidgetItem) -> None:
-        index = self.layers_list.row(item)
-        visible = item.checkState() == Qt.Checked
-        print(f"LayersPanel: Camada '{item.text()}' visibilidade alterada para {visible}")
-        self.controller.toggle_layer_visibility(index)
-
-    def on_layers_reordered(self, source_parent, source_start: int, source_end: int, dest_parent, dest_row: int) -> None:
-        print(f"LayersPanel: Camadas reordenadas de {source_start} para {dest_row}")
-        self.controller.reorder_layers(source_start, dest_row)
-
-    def open_context_menu(self, position) -> None:
-        item = self.layers_list.itemAt(position)
-        if item:
-            context_menu = LayersContextMenu(self.controller, self)
-            action = context_menu.exec_(self.layers_list.viewport().mapToGlobal(position))
-            if action:
-                context_menu.handle_action(action, item)
-    def refresh_layers(self) -> None:
-        self.clear_layers_list()
-        for layer in self.controller.layer_manager.get_layers():
-            self.add_layer_to_list(layer.name, layer.visible)
+    def delete_selected_layer(self):
+        index = self.layers_list.currentIndex()
+        if index.isValid():
+            self.controller.delete_layer(index.row()) 

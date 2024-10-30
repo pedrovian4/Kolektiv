@@ -1,8 +1,7 @@
-# view/main_window.py
-
 from typing import Optional
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QSplitter, QMenuBar, QAction
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSplitter, QShortcut, QAction
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QKeySequence
 from view.components.atoms.image_label import ImageLabel
 from view.components.atoms.status_bar import CustomStatusBar
 from view.components.organisms.layers_panel import LayersPanel
@@ -12,15 +11,14 @@ class MainLayout(QWidget):
         super().__init__(parent)
         self.controller = controller
         self.setup_ui()
+        self.create_actions()
+        self.setup_shortcuts()
+
 
     def setup_ui(self) -> None:
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
-
-        self.menu_bar = QMenuBar(self)
-        self.setup_menus()
-        main_layout.addWidget(self.menu_bar)
 
         splitter = QSplitter(Qt.Horizontal, self)
         splitter.setHandleWidth(1)
@@ -37,7 +35,6 @@ class MainLayout(QWidget):
         splitter.addWidget(self.layers_panel)
 
         splitter.setSizes([950, 250]) 
-
         main_layout.addWidget(splitter)
 
         self.status_bar = CustomStatusBar(self)
@@ -46,20 +43,20 @@ class MainLayout(QWidget):
         self.setLayout(main_layout)
         self.apply_styles()
 
-    def setup_menus(self) -> None:
-        edit_menu = self.menu_bar.addMenu("Editar")
 
+    def create_actions(self) -> None:
         self.undo_action = QAction("Desfazer", self)
         self.undo_action.setShortcut("Ctrl+Z")
-        self.undo_action.setEnabled(False)
-        edit_menu.addAction(self.undo_action)
-
         self.redo_action = QAction("Refazer", self)
         self.redo_action.setShortcut("Ctrl+Y")
-        self.redo_action.setEnabled(False)
-        edit_menu.addAction(self.redo_action)
 
+    def setup_shortcuts(self) -> None:
+        self.undo_shortcut = QShortcut(QKeySequence("Ctrl+Z"), self)
+        self.undo_shortcut.activated.connect(self.undo_action.trigger)
 
+        self.redo_shortcut = QShortcut(QKeySequence("Ctrl+Y"), self)
+        self.redo_shortcut.activated.connect(self.redo_action.trigger)
+ 
     def apply_styles(self) -> None:
         self.setStyleSheet("""
             QWidget {
@@ -84,22 +81,4 @@ class MainLayout(QWidget):
             QLabel {
                 color: #FFFFFF;
             }
-            QMenuBar {
-                background-color: #1E1E1E;
-                color: #FFFFFF;
-            }
-            QMenuBar::item:selected {
-                background-color: #3E3E3E;
-            }
-            QMenu {
-                background-color: #2E2E2E;
-                color: #FFFFFF;
-            }
-            QMenu::item:selected {
-                background-color: #3E3E3E;
-            }
         """)
-    def refresh_layers(self) -> None:
-        self.clear_layers_list()
-        for layer in self.layer_controller.layer_manager.get_layers():
-            self.add_layer_to_list(layer.name, layer.visible)
